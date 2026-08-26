@@ -98,8 +98,7 @@ document.getElementById('formUser').addEventListener('submit', function (e) {
   APP_STATE.userData = { nama, prodi, instansi };
   APP_STATE.isAdmin = false;
 
-  // TODO: arahkan ke halaman Menu Utama sesungguhnya (dikerjakan di tahap berikutnya)
-  switchScreen('main-menu-screen');
+  goToMainMenu();
 });
 
 /* ---------------- LOGIN ADMIN ---------------- */
@@ -113,6 +112,113 @@ document.getElementById('formAdmin').addEventListener('submit', function (e) {
 
   // TODO: ganti dengan validasi kredensial admin sesungguhnya
   APP_STATE.isAdmin = true;
+  APP_STATE.userData = { nama: username, prodi: '', instansi: '' };
+
+  goToMainMenu();
+});
+
+/* ---------------- MENU UTAMA ---------------- */
+function goToMainMenu() {
+  const avatarEl = document.getElementById('menuAvatar');
+  const greetingEl = document.getElementById('menuGreeting');
+
+  const nama = (APP_STATE.userData && APP_STATE.userData.nama) || 'Tamu';
+  avatarEl.textContent = nama.trim().charAt(0).toUpperCase() || 'G';
+
+  greetingEl.textContent = APP_STATE.isAdmin
+    ? `Halo, Admin ${nama}!`
+    : `Halo, ${nama}!`;
 
   switchScreen('main-menu-screen');
-});
+}
+
+function logoutUser() {
+  APP_STATE.userData = null;
+  APP_STATE.isAdmin = false;
+  document.getElementById('formUser').reset();
+  document.getElementById('formAdmin').reset();
+  switchLoginTab('user');
+  switchScreen('login-screen');
+}
+
+/* =========================================================
+   MATERI — Pulau -> Provinsi & Makanan -> Detail
+   ========================================================= */
+let CURRENT_ISLAND = null;
+
+function openMateri() {
+  renderIslandGrid();
+  switchScreen('materi-pulau-screen');
+}
+
+function renderIslandGrid() {
+  const grid = document.getElementById('islandGrid');
+  grid.innerHTML = '';
+
+  FOOD_DATA.forEach(island => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'island-card';
+    btn.style.setProperty('--island-color', island.color);
+    btn.onclick = () => openProvinsiList(island.islandId);
+
+    btn.innerHTML = `
+      <span class="island-icon">${island.icon}</span>
+      <span class="island-info">
+        <span class="island-name">${island.islandName}</span>
+        <span class="island-count">${island.provinces.length} provinsi</span>
+      </span>
+      <svg class="island-arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    `;
+    grid.appendChild(btn);
+  });
+}
+
+function openProvinsiList(islandId) {
+  const island = FOOD_DATA.find(i => i.islandId === islandId);
+  if (!island) return;
+
+  CURRENT_ISLAND = islandId;
+  document.getElementById('provinsiIslandTitle').textContent = `Kuliner Pulau ${island.islandName}`;
+
+  const list = document.getElementById('foodList');
+  list.innerHTML = '';
+
+  island.provinces.forEach((item, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'food-item';
+    btn.onclick = () => openFoodDetail(islandId, index);
+
+    btn.innerHTML = `
+      <span class="food-item-emoji">🍽️</span>
+      <span class="food-item-text">
+        <span class="food-item-name">${item.makanan}</span>
+        <span class="food-item-prov">${item.provinsi}</span>
+      </span>
+      <svg class="food-item-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    `;
+    list.appendChild(btn);
+  });
+
+  switchScreen('materi-provinsi-screen');
+}
+
+function openFoodDetail(islandId, provIndex) {
+  const item = getFoodByRef(islandId, provIndex);
+  if (!item) return;
+
+  document.getElementById('detailProvinsi').textContent = item.provinsi;
+  document.getElementById('detailMakanan').textContent = item.makanan;
+
+  const bodyEl = document.getElementById('detailBody');
+  bodyEl.innerHTML = item.deskripsi
+    .split('\n\n')
+    .map(paragraf => `<p>${paragraf.trim()}</p>`)
+    .join('');
+
+  const backBtn = document.getElementById('detailBackBtn');
+  backBtn.onclick = () => openProvinsiList(islandId);
+
+  switchScreen('materi-detail-screen');
+}
