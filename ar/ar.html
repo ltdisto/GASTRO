@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Augmented Reality | GASTRO</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #1a1108; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  #ar-container { position: fixed; inset: 0; }
+  #ar-container video { object-fit: cover; }
+  #ar-container canvas { position: absolute; inset: 0; }
+
+  /* ---- Top bar ---- */
+  .ar-topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
+  }
+  .ar-back-btn {
+    display: flex; align-items: center; gap: 6px;
+    border: none; cursor: pointer;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    color: #fff; font-weight: 700; font-size: 13px;
+    padding: 9px 14px 9px 10px;
+    border-radius: 999px;
+  }
+  .ar-title {
+    color: #fff; font-family: 'Playfair Display', serif;
+    font-weight: 700; font-size: 15px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .ar-topbar-spacer { width: 40px; }
+
+  /* ---- Scan hint ---- */
+  .ar-hint {
+    position: fixed; top: 50%; left: 50%; z-index: 20;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .ar-hint-frame {
+    width: 220px; height: 220px;
+    border: 3px solid rgba(255,255,255,0.85);
+    border-radius: 24px;
+    position: relative;
+    animation: pulseFrame 2s ease-in-out infinite;
+  }
+  .ar-hint-frame::before, .ar-hint-frame::after {
+    content: "";
+    position: absolute;
+    width: 26px; height: 26px;
+    border-color: #D4AF37;
+  }
+  @keyframes pulseFrame {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+  }
+  .ar-hint-text {
+    color: #fff; font-weight: 600; font-size: 14px;
+    text-align: center; max-width: 260px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  /* ---- Food info card (muncul saat marker terdeteksi) ---- */
+  .ar-info-card {
+    position: fixed; left: 16px; right: 16px; bottom: 0; z-index: 30;
+    transform: translateY(120%);
+    transition: transform 0.4s cubic-bezier(0.19,1,0.22,1);
+    background: #FFF8F0;
+    border-radius: 24px 24px 0 0;
+    padding: 20px 22px calc(22px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.3);
+  }
+  .ar-info-card.show { transform: translateY(0); }
+  .ar-info-provinsi {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #C1440E;
+    margin-bottom: 4px;
+  }
+  .ar-info-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700; font-size: 21px; color: #3E2417;
+    margin-bottom: 10px;
+  }
+  .ar-info-row { display: flex; align-items: center; gap: 10px; }
+  .ar-audio-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; flex-shrink: 0;
+    border: none; border-radius: 50%; cursor: pointer;
+    background: linear-gradient(135deg, #C1440E, #E07A3F);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(193,68,14,0.35);
+  }
+  .ar-audio-btn svg { pointer-events: none; }
+  .ar-info-note { font-size: 12.5px; color: #8B5E3C; line-height: 1.5; flex: 1; }
+
+  /* ---- Loading overlay ---- */
+  .ar-loading {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px;
+    background: linear-gradient(165deg, #3E2417, #1a1108);
+    transition: opacity 0.4s ease;
+  }
+  .ar-loading.hide { opacity: 0; pointer-events: none; }
+  .ar-loading-icon { font-size: 44px; animation: bob 1.6s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  .ar-loading-text { color: #F0D77B; font-weight: 600; font-size: 13.5px; letter-spacing: 0.02em; }
+  .ar-loading-bar {
+    width: 200px; height: 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.15); overflow: hidden;
+  }
+  .ar-loading-bar-fill {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #C1440E, #D4AF37);
+    transition: width 0.2s ease;
+  }
+
+  /* ---- Model loading spinner (kecil, saat ganti marker) ---- */
+  .ar-model-spinner {
+    position: fixed; top: 50%; left: 50%; z-index: 25;
+    transform: translate(-50%, -50%);
+    display: none;
+    flex-direction: column; align-items: center; gap: 10px;
+  }
+  .ar-model-spinner.show { display: flex; }
+  .ar-spinner-ring {
+    width: 34px; height: 34px;
+    border: 3px solid rgba(255,255,255,0.25);
+    border-top-color: #D4AF37;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ar-model-spinner-text { color: #fff; font-size: 12px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+
+  /* ---- Permission / error overlay ---- */
+  .ar-error-overlay {
+    position: fixed; inset: 0; z-index: 60;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 30px;
+    background: #1a1108; color: #fff; text-align: center;
+  }
+  .ar-error-overlay.show { display: flex; }
+  .ar-error-icon { font-size: 42px; }
+  .ar-error-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; }
+  .ar-error-text { font-size: 13.5px; color: #E0C9A6; max-width: 300px; line-height: 1.6; }
+  .ar-error-btn {
+    margin-top: 8px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #C1440E, #E07A3F);
+    color: #fff; font-weight: 700; font-size: 13.5px;
+    padding: 12px 24px; border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+
+  <div id="ar-container"></div>
+
+  <div class="ar-topbar">
+    <button type="button" class="ar-back-btn" onclick="window.location.href='index.html'">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      Keluar
+    </button>
+    <span class="ar-title">GASTRO — AR Kuliner</span>
+    <span class="ar-topbar-spacer"></span>
+  </div>
+
+  <div class="ar-hint" id="arHint">
+    <div class="ar-hint-frame"></div>
+    <p class="ar-hint-text">Arahkan kamera ke marker makanan untuk melihat model 3D</p>
+  </div>
+
+  <div class="ar-model-spinner" id="arModelSpinner">
+    <div class="ar-spinner-ring"></div>
+    <span class="ar-model-spinner-text">Memuat model...</span>
+  </div>
+
+  <div class="ar-info-card" id="arInfoCard">
+    <p class="ar-info-provinsi" id="arInfoProvinsi">Provinsi</p>
+    <h2 class="ar-info-title" id="arInfoTitle">Nama Makanan</h2>
+    <div class="ar-info-row">
+      <button type="button" class="ar-audio-btn" id="arAudioBtn" aria-label="Putar audio">
+        <svg id="arAudioIcon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+      </button>
+      <p class="ar-info-note">Ketuk untuk mendengarkan penjelasan tentang makanan ini.</p>
+    </div>
+  </div>
+
+  <div class="ar-loading" id="arLoading">
+    <span class="ar-loading-icon">🍲</span>
+    <span class="ar-loading-text" id="arLoadingText">Menyiapkan kamera AR...</span>
+    <div class="ar-loading-bar"><div class="ar-loading-bar-fill" id="arLoadingBarFill"></div></div>
+  </div>
+
+  <div class="ar-error-overlay" id="arErrorOverlay">
+    <span class="ar-error-icon">📷</span>
+    <h2 class="ar-error-title">Akses Kamera Diperlukan</h2>
+    <p class="ar-error-text" id="arErrorText">Website ini butuh izin kamera untuk menjalankan fitur Augmented Reality. Silakan izinkan akses kamera lalu muat ulang halaman.</p>
+    <button type="button" class="ar-error-btn" onclick="location.reload()">Coba Lagi</button>
+  </div>
+
+  <!-- ================= LIBRARIES ================= -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/KTX2Loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/libs/meshopt_decoder.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+
+  <!-- ================= DATA ================= -->
+  <script src="../data.js"></script>
+  <script src="ar-data.js"></script>
+
+  <!-- ================= LOGIC ================= -->
+  <script src="ar.js"></script>
+</body>
+</html>
