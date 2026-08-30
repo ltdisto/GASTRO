@@ -208,18 +208,22 @@
     <button type="button" class="ar-error-btn" onclick="location.reload()">Coba Lagi</button>
   </div>
 
-  <!-- ================= LIBRARIES ================= -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/KTX2Loader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/libs/meshopt_decoder.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+  <!-- ================= LIBRARIES (ES Module + Import Map) ================= -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+    }
+  }
+  </script>
 
-  <!-- ================= DATA ================= -->
+  <!-- ================= DATA (classic script, tetap bisa diakses dari module) ================= -->
   <script src="../data.js"></script>
   <script src="ar-data.js"></script>
 
-  <!-- ================= LOGIC ================= -->
-  <script src="ar.js"></script>
+  <!-- ================= LOGIC (ES Module) ================= -->
+  <script type="module" src="ar.js"></script>
 </body>
 </html>
