@@ -52,7 +52,7 @@ function markDiscovered(targetIndex) {
 }
 
 /* ---------------- Submit ke Google Sheet ---------------- */
-const GOOGLE_SHEET_WEBAPP_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA"; // lihat panduan setup Apps Script
+const GOOGLE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec"; // lihat panduan setup Apps Script
 const submittedKey = submissionId ? `gastro_submitted_${submissionId}` : 'gastro_submitted_guest';
 
 function updateSubmitButton() {
