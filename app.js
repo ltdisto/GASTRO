@@ -8,6 +8,10 @@ const APP_STATE = {
   isAdmin: false,
 };
 
+function generateSubmissionId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+}
+
 function switchScreen(screenId) {
   document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
   const target = document.getElementById(screenId);
@@ -97,6 +101,10 @@ document.getElementById('formUser').addEventListener('submit', function (e) {
 
   APP_STATE.userData = { nama, prodi, instansi };
   APP_STATE.isAdmin = false;
+
+  const submissionId = generateSubmissionId();
+  sessionStorage.setItem('gastro_submission_id', submissionId);
+  sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
 
   goToMainMenu();
 });
