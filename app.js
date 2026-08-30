@@ -12,14 +12,85 @@ function generateSubmissionId() {
   return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 }
 
+/* ---------------- Persistensi sesi (agar refresh tidak logout) ---------------- */
+function saveNavState(state) {
+  sessionStorage.setItem('gastro_nav_state', JSON.stringify(state));
+}
+function getNavState() {
+  try {
+    return JSON.parse(sessionStorage.getItem('gastro_nav_state') || 'null');
+  } catch (e) {
+    return null;
+  }
+}
+
 function switchScreen(screenId) {
   document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
   const target = document.getElementById(screenId);
   if (target) target.classList.add('active');
+
+  // Simpan posisi halaman terakhir, kecuali splash/login (tidak relevan untuk direstore)
+  if (screenId !== 'splash-screen' && screenId !== 'login-screen') {
+    saveNavState({ screen: screenId });
+  }
+}
+
+function restoreUserUI() {
+  const avatarEl = document.getElementById('menuAvatar');
+  const greetingEl = document.getElementById('menuGreeting');
+  const nama = (APP_STATE.userData && APP_STATE.userData.nama) || 'Tamu';
+
+  avatarEl.textContent = nama.trim().charAt(0).toUpperCase() || 'G';
+  greetingEl.textContent = APP_STATE.isAdmin ? `Halo, Admin ${nama}!` : `Halo, ${nama}!`;
+}
+
+function restoreSession() {
+  const rawUser = sessionStorage.getItem('gastro_user_data');
+  if (!rawUser) return false;
+
+  try {
+    APP_STATE.userData = JSON.parse(rawUser);
+  } catch (e) {
+    return false;
+  }
+  APP_STATE.isAdmin = sessionStorage.getItem('gastro_is_admin') === '1';
+  restoreUserUI();
+
+  const nav = getNavState();
+  if (!nav || !nav.screen) {
+    switchScreen('main-menu-screen');
+    return true;
+  }
+
+  switch (nav.screen) {
+    case 'materi-provinsi-screen':
+      if (nav.islandId) openProvinsiList(nav.islandId);
+      else switchScreen('main-menu-screen');
+      break;
+    case 'materi-detail-screen':
+      if (nav.islandId != null && nav.provIndex != null) openFoodDetail(nav.islandId, nav.provIndex);
+      else switchScreen('main-menu-screen');
+      break;
+    case 'materi-pulau-screen':
+      openMateri();
+      break;
+    case 'petunjuk-screen':
+    case 'profil-screen':
+    case 'main-menu-screen':
+    case 'ar-screen':
+      switchScreen(nav.screen);
+      break;
+    default:
+      switchScreen('main-menu-screen');
+  }
+  return true;
 }
 
 /* ---------------- OPENING / SPLASH ---------------- */
 (function initSplash() {
+  // Jika sesi login masih ada (refresh halaman), lewati splash & login sepenuhnya
+  if (restoreSession()) return;
+
   const DURATION_MS = 4200; // total durasi opening otomatis
   const fill = document.getElementById('splashLoaderFill');
   const label = document.getElementById('splashLoaderLabel');
@@ -105,6 +176,7 @@ document.getElementById('formUser').addEventListener('submit', function (e) {
   const submissionId = generateSubmissionId();
   sessionStorage.setItem('gastro_submission_id', submissionId);
   sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
+  sessionStorage.setItem('gastro_is_admin', '0');
 
   goToMainMenu();
 });
@@ -122,27 +194,27 @@ document.getElementById('formAdmin').addEventListener('submit', function (e) {
   APP_STATE.isAdmin = true;
   APP_STATE.userData = { nama: username, prodi: '', instansi: '' };
 
+  const submissionId = generateSubmissionId();
+  sessionStorage.setItem('gastro_submission_id', submissionId);
+  sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
+  sessionStorage.setItem('gastro_is_admin', '1');
+
   goToMainMenu();
 });
 
 /* ---------------- MENU UTAMA ---------------- */
 function goToMainMenu() {
-  const avatarEl = document.getElementById('menuAvatar');
-  const greetingEl = document.getElementById('menuGreeting');
-
-  const nama = (APP_STATE.userData && APP_STATE.userData.nama) || 'Tamu';
-  avatarEl.textContent = nama.trim().charAt(0).toUpperCase() || 'G';
-
-  greetingEl.textContent = APP_STATE.isAdmin
-    ? `Halo, Admin ${nama}!`
-    : `Halo, ${nama}!`;
-
+  restoreUserUI();
   switchScreen('main-menu-screen');
 }
 
 function logoutUser() {
   APP_STATE.userData = null;
   APP_STATE.isAdmin = false;
+  sessionStorage.removeItem('gastro_user_data');
+  sessionStorage.removeItem('gastro_submission_id');
+  sessionStorage.removeItem('gastro_is_admin');
+  sessionStorage.removeItem('gastro_nav_state');
   document.getElementById('formUser').reset();
   document.getElementById('formAdmin').reset();
   switchLoginTab('user');
@@ -210,6 +282,7 @@ function openProvinsiList(islandId) {
   });
 
   switchScreen('materi-provinsi-screen');
+  saveNavState({ screen: 'materi-provinsi-screen', islandId: islandId });
 }
 
 function openFoodDetail(islandId, provIndex) {
@@ -229,4 +302,5 @@ function openFoodDetail(islandId, provIndex) {
   backBtn.onclick = () => openProvinsiList(islandId);
 
   switchScreen('materi-detail-screen');
+  saveNavState({ screen: 'materi-detail-screen', islandId: islandId, provIndex: provIndex });
 }
