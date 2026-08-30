@@ -13,6 +13,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 const MODEL_BASE_PATH = "../3d/";
 const AUDIO_BASE_PATH = "../audio/";
 const MIND_FILE_PATH = "targets.mind";
+const TOTAL_TARGETS = 38;
 
 const modelCache = {};
 const anchorGroups = {};
@@ -20,6 +21,101 @@ let currentAudio = null;
 let currentAudioIndex = null;
 let isAudioPlaying = false;
 let gltfLoader = null;
+
+/* ---------------- Progress tracking (persist saat refresh via sessionStorage) ---------------- */
+const submissionId = sessionStorage.getItem('gastro_submission_id') || null;
+const progressKey = submissionId ? `gastro_ar_progress_${submissionId}` : 'gastro_ar_progress_guest';
+
+function loadProgress() {
+  try {
+    const raw = sessionStorage.getItem(progressKey);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+function saveProgress(set) {
+  sessionStorage.setItem(progressKey, JSON.stringify([...set]));
+}
+const discoveredTargets = loadProgress();
+
+function updateProgressBadge() {
+  document.getElementById('arProgressBadge').textContent = `${discoveredTargets.size} / ${TOTAL_TARGETS}`;
+  updateSubmitButton();
+}
+function markDiscovered(targetIndex) {
+  if (!discoveredTargets.has(targetIndex)) {
+    discoveredTargets.add(targetIndex);
+    saveProgress(discoveredTargets);
+    updateProgressBadge();
+  }
+}
+
+/* ---------------- Submit ke Google Sheet ---------------- */
+const GOOGLE_SHEET_WEBAPP_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA"; // lihat panduan setup Apps Script
+const submittedKey = submissionId ? `gastro_submitted_${submissionId}` : 'gastro_submitted_guest';
+
+function updateSubmitButton() {
+  const btn = document.getElementById('arSubmitBtn');
+  const btnText = document.getElementById('arSubmitBtnText');
+  const alreadySubmitted = sessionStorage.getItem(submittedKey) === '1';
+
+  if (alreadySubmitted) {
+    btn.disabled = true;
+    btn.classList.add('submitted');
+    btnText.textContent = 'Progress Tersimpan ✓';
+    return;
+  }
+
+  const isComplete = discoveredTargets.size >= TOTAL_TARGETS;
+  btn.disabled = !isComplete;
+  btnText.textContent = isComplete
+    ? 'Simpan Progress'
+    : `Simpan Progress (${discoveredTargets.size}/${TOTAL_TARGETS})`;
+}
+
+async function submitProgress() {
+  const btn = document.getElementById('arSubmitBtn');
+  const btnText = document.getElementById('arSubmitBtnText');
+  if (btn.disabled) return;
+
+  let userData = {};
+  try {
+    userData = JSON.parse(sessionStorage.getItem('gastro_user_data') || '{}');
+  } catch (e) {}
+
+  btn.disabled = true;
+  btnText.textContent = 'Mengirim...';
+
+  const payload = {
+    submissionId: submissionId || '-',
+    nama: userData.nama || '-',
+    prodi: userData.prodi || '-',
+    instansi: userData.instansi || '-',
+    waktu: new Date().toISOString(),
+    jumlahTerscan: discoveredTargets.size,
+  };
+
+  try {
+    await fetch(GOOGLE_SHEET_WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Apps Script Web App tidak mendukung CORS response, kirim saja tanpa baca balasan
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload),
+    });
+
+    sessionStorage.setItem(submittedKey, '1');
+    btn.classList.add('submitted');
+    btnText.textContent = 'Progress Tersimpan ✓';
+  } catch (err) {
+    console.error('Gagal mengirim progress:', err);
+    btn.disabled = false;
+    btnText.textContent = 'Gagal, coba lagi';
+    setTimeout(updateSubmitButton, 2000);
+  }
+}
+
+document.getElementById('arSubmitBtn').addEventListener('click', submitProgress);
 
 /* ---------------- UI Helpers ---------------- */
 function setLoadingProgress(percent, text) {
@@ -39,9 +135,11 @@ function showInfoCard(data) {
   document.getElementById('arInfoProvinsi').textContent = data.provinsi;
   document.getElementById('arInfoTitle').textContent = data.makanan;
   document.getElementById('arInfoCard').classList.add('show');
+  document.getElementById('arSubmitBtn').style.display = 'none';
 }
 function hideInfoCard() {
   document.getElementById('arInfoCard').classList.remove('show');
+  document.getElementById('arSubmitBtn').style.display = 'flex';
 }
 function setAudioIcon(playing) {
   const icon = document.getElementById('arAudioIcon');
@@ -164,6 +262,7 @@ async function startAR() {
         showHint(false);
         const data = getArDataByIndex(index);
         showInfoCard(data);
+        markDiscovered(index);
 
         loadModelForTarget(index, (modelInstance) => {
           group.clear();
@@ -186,9 +285,10 @@ async function startAR() {
     dirLight.position.set(0.5, 1, 0.3);
     scene.add(dirLight);
 
-    setLoadingProgress(70, 'Mengaktifkan kamera...');
+    setLoadingProgress(65, 'Menyiapkan pelacakan 38 marker...');
+    setLoadingProgress(80, 'Mengaktifkan kamera, mohon izinkan aksesnya...');
     await mindarThree.start();
-    setLoadingProgress(100, 'Siap!');
+    setLoadingProgress(100, 'Siap! Arahkan kamera ke marker.');
 
     renderer.setAnimationLoop(() => {
       renderer.render(scene, camera);
@@ -207,8 +307,9 @@ async function startAR() {
 }
 
 /* ---------------- Init ---------------- */
-setLoadingProgress(20, 'Memuat pustaka AR...');
+updateProgressBadge();
+setLoadingProgress(15, 'Memuat pustaka Three.js & MindAR...');
 window.addEventListener('load', () => {
-  setLoadingProgress(45, 'Menyiapkan marker...');
+  setLoadingProgress(35, 'Menyiapkan mesin AR & decoder model 3D...');
   startAR();
 });
