@@ -3,9 +3,9 @@
    ========================================================= */
 
 // PENTING: samakan URL ini dengan APPS_SCRIPT_URL di app.js & GOOGLE_SHEET_WEBAPP_URL di ar.js
-const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec";
 // PENTING: ganti dengan URL Google Sheet Anda (untuk tombol "Buka Google Sheet")
-const SPREADSHEET_URL = "GANTI_DENGAN_URL_GOOGLE_SHEET_ANDA";
+const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1mgUvpFZpsIwP6vHYrKLkdDuDhNLO9GucYiDwwJbAPfo/edit?gid=0#gid=0";
 
 /* ---------------- Auth guard ---------------- */
 (function checkAdminAuth() {
