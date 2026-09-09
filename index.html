@@ -28,10 +28,18 @@
       <h1 class="splash-title">Jelajah Rasa<br>Nusantara</h1>
       <p class="splash-tagline">Menyusuri sejarah &amp; cita rasa kuliner khas Indonesia melalui teknologi Augmented Reality</p>
 
-      <div class="splash-loader">
-        <div class="splash-loader-fill" id="splashLoaderFill"></div>
+      <div class="splash-inventors">
+        <p class="splash-inventors-label">Dipersembahkan oleh</p>
+        <ul class="splash-inventors-list">
+          <li>Prof. Drs. Suwarna, M.Pd.</li>
+          <li>Caesar Rosyad Achmadi, MBA.</li>
+          <li>Muhammad Harfiansyah Makarim, MBA.</li>
+          <li>Dr. Agatha Saputri, M.Pd.</li>
+          <li>Dr. R. Andro Zylio Nugraha, M.Acc.</li>
+          <li>Arief Nurrahman, M.Pd.</li>
+          <li>Nur Aulia Wijayanti, M.Pd.</li>
+        </ul>
       </div>
-      <p class="splash-loader-label" id="splashLoaderLabel">Menyiapkan pengalaman...</p>
     </div>
 
     <button type="button" id="btnSkipSplash" class="splash-skip-btn">Lewati</button>
@@ -71,15 +79,33 @@
               <span class="field-underline"></span>
             </div>
 
-            <div class="field">
-              <input type="text" id="userProdi" class="field-input" placeholder=" " required>
-              <label for="userProdi" class="field-label">Program Studi / Jurusan</label>
+            <div class="field field-select">
+              <select id="userGender" class="field-input" required>
+                <option value="" disabled selected hidden></option>
+                <option value="Laki-Laki">Laki-Laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+              <label for="userGender" class="field-label field-label-select">Jenis Kelamin</label>
               <span class="field-underline"></span>
             </div>
 
             <div class="field">
-              <input type="text" id="userInstansi" class="field-input" placeholder=" " required>
-              <label for="userInstansi" class="field-label">Asal Instansi</label>
+              <input type="number" id="userUsia" class="field-input" placeholder=" " min="1" max="120" required>
+              <label for="userUsia" class="field-label">Usia</label>
+              <span class="field-underline"></span>
+            </div>
+
+            <div class="field field-select">
+              <select id="userDaerah" class="field-input" required>
+                <option value="" disabled selected hidden></option>
+              </select>
+              <label for="userDaerah" class="field-label field-label-select">Asal Daerah (Provinsi)</label>
+              <span class="field-underline"></span>
+            </div>
+
+            <div class="field">
+              <input type="text" id="userKabupaten" class="field-input" placeholder=" " required>
+              <label for="userKabupaten" class="field-label">Kabupaten / Kota</label>
               <span class="field-underline"></span>
             </div>
 

@@ -170,6 +170,7 @@ button, input {
   box-shadow: var(--shadow-clay-in);
   overflow: hidden;
   margin-bottom: 12px;
+  display: none; /* sudah tidak dipakai, digantikan daftar inventor */
 }
 .splash-loader-fill {
   height: 100%;
@@ -183,6 +184,36 @@ button, input {
   color: var(--brown-500);
   font-weight: 500;
   letter-spacing: 0.02em;
+}
+
+.splash-inventors {
+  margin-top: 6px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(139,94,60,0.18);
+  width: 100%;
+  max-width: 300px;
+}
+.splash-inventors-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  margin-bottom: 12px;
+  text-align: center;
+}
+.splash-inventors-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: center;
+}
+.splash-inventors-list li {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brown-700);
+  line-height: 1.4;
 }
 
 .splash-skip-btn {
@@ -396,6 +427,26 @@ button, input {
 
 .field-input:focus {
   box-shadow: var(--shadow-clay-in), 0 0 0 3px rgba(212,175,55,0.25);
+}
+
+/* ---- Select (dropdown) khusus: label selalu di posisi "float" ---- */
+.field-select select.field-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238B5E3C' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+.field-select .field-label-select {
+  top: 8px;
+  transform: translateY(0) scale(0.72);
+  color: var(--terracotta);
+  font-weight: 700;
+}
+.field-select select.field-input:invalid {
+  color: var(--brown-500);
 }
 
 /* ---- Buttons with hover effect ---- */
@@ -763,5 +814,13 @@ button, input {
   margin: 18px 0 20px;
 }
 .detail-body { font-size: 14.5px; line-height: 1.85; color: var(--brown-700); }
-.detail-body p { margin-bottom: 16px; }
+.detail-body p { margin-bottom: 16px; text-align: justify; }
 .detail-body p:last-child { margin-bottom: 0; }
+.detail-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-clay-out-sm);
+}
