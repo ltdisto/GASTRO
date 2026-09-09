@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Panel Admin | GASTRO</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<style>
+  body { background: linear-gradient(165deg, #FFF8F0 0%, #FCEFE0 60%, #F5E2C8 100%); min-height: 100vh; }
+
+  .admin-shell { max-width: 980px; margin: 0 auto; padding: 22px 18px 60px; }
+
+  .admin-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .admin-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; color: var(--brown-900); }
+  .admin-logout-btn {
+    border: none; cursor: pointer;
+    background: var(--cream-soft);
+    color: var(--brown-700);
+    font-weight: 700; font-size: 12.5px;
+    padding: 9px 16px; border-radius: 999px;
+    box-shadow: var(--shadow-clay-out-sm);
+  }
+
+  .admin-tabs {
+    display: flex; gap: 8px; margin-bottom: 22px;
+    overflow-x: auto; padding-bottom: 4px;
+  }
+  .admin-tab {
+    border: none; cursor: pointer; white-space: nowrap;
+    background: var(--cream);
+    color: var(--brown-700);
+    font-weight: 700; font-size: 13px;
+    padding: 11px 18px; border-radius: 999px;
+    box-shadow: var(--shadow-clay-out-sm);
+  }
+  .admin-tab.active {
+    color: #fff;
+    background: linear-gradient(120deg, var(--terracotta), var(--terracotta-2));
+  }
+
+  .admin-panel { display: none; }
+  .admin-panel.active { display: block; animation: splashRise 0.4s ease both; }
+
+  /* ---- Editor Materi ---- */
+  .editor-layout { display: flex; flex-direction: column; gap: 18px; }
+  @media (min-width: 800px) {
+    .editor-layout { flex-direction: row; align-items: flex-start; }
+    .editor-food-list { width: 300px; flex-shrink: 0; max-height: 70vh; overflow-y: auto; }
+    .editor-form-wrap { flex: 1; }
+  }
+
+  .editor-island-group { margin-bottom: 14px; }
+  .editor-island-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--terracotta); margin-bottom: 6px; padding-left: 4px;
+  }
+  .editor-food-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    width: 100%; text-align: left; border: none; cursor: pointer;
+    background: var(--cream); border-radius: 12px;
+    padding: 10px 14px; margin-bottom: 6px;
+    font-size: 13px; font-weight: 600; color: var(--brown-900);
+    box-shadow: var(--shadow-clay-out-sm);
+  }
+  .editor-food-item.active { background: linear-gradient(120deg, var(--terracotta), var(--terracotta-2)); color: #fff; }
+  .editor-food-item .edited-badge {
+    font-size: 10px; font-weight: 800; color: var(--gold);
+    background: rgba(0,0,0,0.15); padding: 2px 7px; border-radius: 999px;
+  }
+  .editor-food-item.active .edited-badge { background: rgba(255,255,255,0.25); }
+
+  .editor-form-wrap {
+    background: var(--cream); border-radius: var(--radius-md);
+    padding: 22px; box-shadow: var(--shadow-clay-out);
+  }
+  .editor-form-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; color: var(--brown-900); margin-bottom: 4px; }
+  .editor-form-sub { font-size: 12.5px; color: var(--brown-500); margin-bottom: 18px; }
+  .editor-label { font-size: 12.5px; font-weight: 700; color: var(--brown-700); margin-bottom: 6px; display: block; }
+  .editor-textarea, .editor-input {
+    width: 100%; border: none; outline: none;
+    background: var(--cream-soft); border-radius: 12px;
+    box-shadow: var(--shadow-clay-in);
+    padding: 14px; font-size: 13.5px; color: var(--brown-900);
+    font-family: inherit; margin-bottom: 16px;
+    text-align: justify;
+  }
+  .editor-textarea { min-height: 220px; resize: vertical; line-height: 1.7; }
+  .editor-radio-row { display: flex; gap: 16px; margin-bottom: 18px; }
+  .editor-radio-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--brown-700); cursor: pointer; }
+  .editor-save-btn {
+    border: none; cursor: pointer;
+    background: linear-gradient(120deg, var(--terracotta), var(--terracotta-2));
+    color: #fff; font-weight: 700; font-size: 13.5px;
+    padding: 13px 26px; border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(193,68,14,0.3);
+  }
+  .editor-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .editor-status { margin-top: 12px; font-size: 12.5px; font-weight: 600; }
+  .editor-status.success { color: #3E6B4F; }
+  .editor-status.error { color: var(--terracotta); }
+  .editor-preview-note { font-size: 11.5px; color: var(--brown-500); margin: -10px 0 16px; }
+
+  /* ---- Leaderboard ---- */
+  .lb-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .lb-filters select, .lb-filters button {
+    border: none; cursor: pointer;
+    background: var(--cream); box-shadow: var(--shadow-clay-out-sm);
+    padding: 10px 14px; border-radius: 12px;
+    font-size: 12.5px; font-weight: 600; color: var(--brown-900);
+  }
+  .lb-table-wrap { overflow-x: auto; background: var(--cream); border-radius: var(--radius-md); box-shadow: var(--shadow-clay-out); }
+  table.lb-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 640px; }
+  table.lb-table th {
+    text-align: left; padding: 12px 14px; font-weight: 800; color: var(--terracotta);
+    text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.05em;
+    border-bottom: 2px solid rgba(139,94,60,0.15);
+  }
+  table.lb-table td { padding: 11px 14px; border-bottom: 1px solid rgba(139,94,60,0.1); color: var(--brown-700); }
+  table.lb-table tr:last-child td { border-bottom: none; }
+  .lb-rank { font-weight: 800; color: var(--brown-900); }
+  .lb-empty { padding: 30px; text-align: center; color: var(--brown-500); font-size: 13px; }
+
+  /* ---- Database ---- */
+  .db-card {
+    background: var(--cream); border-radius: var(--radius-md); padding: 28px 24px;
+    box-shadow: var(--shadow-clay-out); text-align: center;
+  }
+  .db-icon { font-size: 40px; margin-bottom: 12px; }
+  .db-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; color: var(--brown-900); margin-bottom: 6px; }
+  .db-desc { font-size: 13px; color: var(--brown-500); margin-bottom: 20px; }
+  .db-link-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none;
+    background: linear-gradient(120deg, var(--terracotta), var(--terracotta-2));
+    color: #fff; font-weight: 700; font-size: 13.5px;
+    padding: 13px 26px; border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(193,68,14,0.3);
+  }
+</style>
+</head>
+<body>
+
+  <div class="admin-shell">
+    <div class="admin-topbar">
+      <span class="admin-title">🔐 Panel Admin GASTRO</span>
+      <button type="button" class="admin-logout-btn" onclick="adminLogout()">Keluar</button>
+    </div>
+
+    <div class="admin-tabs">
+      <button type="button" class="admin-tab active" data-tab="editor">📖 Editor Materi</button>
+      <button type="button" class="admin-tab" data-tab="leaderboard">🏆 Leaderboard</button>
+      <button type="button" class="admin-tab" data-tab="database">🗄️ Database</button>
+    </div>
+
+    <!-- ===== TAB: EDITOR MATERI ===== -->
+    <div class="admin-panel active" id="panel-editor">
+      <div class="editor-layout">
+        <div class="editor-food-list" id="editorFoodList"></div>
+
+        <div class="editor-form-wrap">
+          <p class="editor-form-title" id="editorFormTitle">Pilih makanan di sebelah kiri</p>
+          <p class="editor-form-sub" id="editorFormSub">Klik salah satu makanan untuk mulai mengedit deskripsinya.</p>
+
+          <div id="editorFormFields" style="display:none;">
+            <label class="editor-label">Deskripsi (Sejarah, Cita Rasa, Lokasi)</label>
+            <textarea class="editor-textarea" id="editorDeskripsi" placeholder="Tulis deskripsi lengkap di sini... Pisahkan paragraf dengan baris kosong."></textarea>
+
+            <label class="editor-label">Link Gambar (opsional)</label>
+            <input type="text" class="editor-input" id="editorGambarUrl" placeholder="Tempel link share Google Drive, atau link gambar langsung (.jpg/.png)">
+            <p class="editor-preview-note">💡 Untuk Google Drive: buka file → Share → Copy link. Sistem otomatis mengonversinya. Link Pinterest tidak akan tampil (bukan file gambar langsung) — gunakan Google Drive atau link gambar langsung.</p>
+
+            <label class="editor-label">Posisi Gambar</label>
+            <div class="editor-radio-row">
+              <label><input type="radio" name="posisiGambar" value="atas" checked> Di atas deskripsi</label>
+              <label><input type="radio" name="posisiGambar" value="bawah"> Di bawah deskripsi</label>
+            </div>
+
+            <button type="button" class="editor-save-btn" id="editorSaveBtn">Simpan Perubahan</button>
+            <p class="editor-status" id="editorStatus"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: LEADERBOARD ===== -->
+    <div class="admin-panel" id="panel-leaderboard">
+      <div class="lb-filters">
+        <select id="lbFilterProvinsi"><option value="">Semua Provinsi</option></select>
+        <select id="lbFilterGender">
+          <option value="">Semua Gender</option>
+          <option value="Laki-Laki">Laki-Laki</option>
+          <option value="Perempuan">Perempuan</option>
+        </select>
+        <button type="button" id="lbRefreshBtn">🔄 Muat Ulang</button>
+      </div>
+      <div class="lb-table-wrap">
+        <table class="lb-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Nama</th><th>Gender</th><th>Usia</th><th>Daerah</th><th>Kabupaten</th><th>Terscan</th><th>Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="lbTableBody"></tbody>
+        </table>
+        <p class="lb-empty" id="lbEmptyNote" style="display:none;">Belum ada data submission.</p>
+      </div>
+    </div>
+
+    <!-- ===== TAB: DATABASE ===== -->
+    <div class="admin-panel" id="panel-database">
+      <div class="db-card">
+        <div class="db-icon">🗄️</div>
+        <h2 class="db-title">Akses Google Sheet</h2>
+        <p class="db-desc">Buka spreadsheet sumber data untuk melihat, mengekspor, atau mengelola data submission secara langsung.</p>
+        <a href="#" target="_blank" class="db-link-btn" id="dbSheetLink">
+          Buka Google Sheet
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="../data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
