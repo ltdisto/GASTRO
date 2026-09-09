@@ -36,7 +36,14 @@
     font-weight: 700; font-size: 15px;
     text-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }
-  .ar-topbar-spacer { width: 40px; }
+  .ar-progress-badge {
+    display: flex; align-items: center;
+    color: #fff; font-weight: 800; font-size: 12.5px;
+    background: rgba(212,175,55,0.9);
+    padding: 8px 14px; border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    white-space: nowrap;
+  }
 
   /* ---- Scan hint ---- */
   .ar-hint {
@@ -159,6 +166,32 @@
     color: #fff; font-weight: 700; font-size: 13.5px;
     padding: 12px 24px; border-radius: 999px;
   }
+
+  /* ---- Submit progress button ---- */
+  .ar-submit-btn {
+    position: fixed; left: 16px; right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 28;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: none; cursor: pointer;
+    padding: 15px 20px;
+    border-radius: 999px;
+    font-weight: 700; font-size: 14px;
+    color: #fff;
+    background: linear-gradient(120deg, #C1440E, #E07A3F);
+    box-shadow: 0 10px 24px rgba(193,68,14,0.4);
+    transition: opacity 0.25s ease, transform 0.2s ease;
+  }
+  .ar-submit-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #6b6258;
+    box-shadow: none;
+  }
+  .ar-submit-btn:not(:disabled):active { transform: scale(0.98); }
+  .ar-submit-btn.submitted {
+    background: linear-gradient(120deg, #3E6B4F, #4E7C59);
+  }
 </style>
 </head>
 <body>
@@ -166,12 +199,12 @@
   <div id="ar-container"></div>
 
   <div class="ar-topbar">
-    <button type="button" class="ar-back-btn" onclick="window.location.href='index.html'">
+    <button type="button" class="ar-back-btn" onclick="window.location.href='../index.html'">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       Keluar
     </button>
     <span class="ar-title">GASTRO — AR Kuliner</span>
-    <span class="ar-topbar-spacer"></span>
+    <span class="ar-progress-badge" id="arProgressBadge">0 / 38</span>
   </div>
 
   <div class="ar-hint" id="arHint">
@@ -183,6 +216,11 @@
     <div class="ar-spinner-ring"></div>
     <span class="ar-model-spinner-text">Memuat model...</span>
   </div>
+
+  <button type="button" class="ar-submit-btn" id="arSubmitBtn" disabled>
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+    <span id="arSubmitBtnText">Simpan Progress (0/38)</span>
+  </button>
 
   <div class="ar-info-card" id="arInfoCard">
     <p class="ar-info-provinsi" id="arInfoProvinsi">Provinsi</p>

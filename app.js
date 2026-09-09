@@ -8,57 +8,154 @@ const APP_STATE = {
   isAdmin: false,
 };
 
+function generateSubmissionId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+}
+
+/* ---------------- Konten Editor Admin (Google Sheets sebagai CMS) ---------------- */
+// PENTING: isi dengan URL Web App Apps Script yang sama seperti di ar.js
+const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
+
+let MATERI_OVERRIDES = {}; // { "islandId_provIndex": { deskripsi, gambarUrl, posisiGambar } }
+
+function foodKeyOf(islandId, provIndex) {
+  return `${islandId}_${provIndex}`;
+}
+
+async function loadMateriOverrides() {
+  if (APPS_SCRIPT_URL.startsWith('GANTI_')) return; // belum dikonfigurasi, lewati diam-diam
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=get_materi`);
+    const json = await res.json();
+    (json.data || []).forEach(row => {
+      MATERI_OVERRIDES[row.foodKey] = {
+        deskripsi: row.deskripsi,
+        gambarUrl: row.gambarUrl,
+        posisiGambar: row.posisiGambar || 'atas',
+      };
+    });
+    // Jika user sedang membuka halaman detail saat data override tiba, render ulang
+    const nav = getNavState();
+    if (nav && nav.screen === 'materi-detail-screen' && document.getElementById('materi-detail-screen').classList.contains('active')) {
+      openFoodDetail(nav.islandId, nav.provIndex);
+    }
+  } catch (err) {
+    console.warn('Gagal memuat konten editor admin (memakai teks default):', err);
+  }
+}
+loadMateriOverrides();
+
+/* Konversi berbagai format link Google Drive jadi link gambar langsung yang bisa ditampilkan */
+function toDirectImageUrl(url) {
+  if (!url) return '';
+  const trimmed = url.trim();
+  const driveMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveMatch && trimmed.includes('drive.google.com')) {
+    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+  }
+  return trimmed; // asumsikan sudah berupa link gambar langsung (jpg/png/webp, dsb)
+}
+
+/* ---------------- Persistensi sesi (agar refresh tidak logout) ---------------- */
+function saveNavState(state) {
+  sessionStorage.setItem('gastro_nav_state', JSON.stringify(state));
+}
+function getNavState() {
+  try {
+    return JSON.parse(sessionStorage.getItem('gastro_nav_state') || 'null');
+  } catch (e) {
+    return null;
+  }
+}
+
 function switchScreen(screenId) {
   document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
   const target = document.getElementById(screenId);
   if (target) target.classList.add('active');
+
+  // Simpan posisi halaman terakhir, kecuali splash/login (tidak relevan untuk direstore)
+  if (screenId !== 'splash-screen' && screenId !== 'login-screen') {
+    saveNavState({ screen: screenId });
+  }
+}
+
+function restoreUserUI() {
+  const avatarEl = document.getElementById('menuAvatar');
+  const greetingEl = document.getElementById('menuGreeting');
+  const nama = (APP_STATE.userData && APP_STATE.userData.nama) || 'Tamu';
+
+  avatarEl.textContent = nama.trim().charAt(0).toUpperCase() || 'G';
+  greetingEl.textContent = APP_STATE.isAdmin ? `Halo, Admin ${nama}!` : `Halo, ${nama}!`;
+}
+
+function restoreSession() {
+  const rawUser = sessionStorage.getItem('gastro_user_data');
+  if (!rawUser) return false;
+
+  try {
+    APP_STATE.userData = JSON.parse(rawUser);
+  } catch (e) {
+    return false;
+  }
+  APP_STATE.isAdmin = sessionStorage.getItem('gastro_is_admin') === '1';
+
+  // Jika sesi admin aktif dan kembali membuka index.html, langsung arahkan ke panel Admin
+  if (APP_STATE.isAdmin) {
+    window.location.href = 'admin/admin.html';
+    return true;
+  }
+
+  restoreUserUI();
+
+  const nav = getNavState();
+  if (!nav || !nav.screen) {
+    switchScreen('main-menu-screen');
+    return true;
+  }
+
+  switch (nav.screen) {
+    case 'materi-provinsi-screen':
+      if (nav.islandId) openProvinsiList(nav.islandId);
+      else switchScreen('main-menu-screen');
+      break;
+    case 'materi-detail-screen':
+      if (nav.islandId != null && nav.provIndex != null) openFoodDetail(nav.islandId, nav.provIndex);
+      else switchScreen('main-menu-screen');
+      break;
+    case 'materi-pulau-screen':
+      openMateri();
+      break;
+    case 'petunjuk-screen':
+    case 'profil-screen':
+    case 'main-menu-screen':
+    case 'ar-screen':
+      switchScreen(nav.screen);
+      break;
+    default:
+      switchScreen('main-menu-screen');
+  }
+  return true;
 }
 
 /* ---------------- OPENING / SPLASH ---------------- */
 (function initSplash() {
+  // Jika sesi login masih ada (refresh halaman), lewati splash & login sepenuhnya
+  if (restoreSession()) return;
+
   const DURATION_MS = 4200; // total durasi opening otomatis
-  const fill = document.getElementById('splashLoaderFill');
-  const label = document.getElementById('splashLoaderLabel');
   const skipBtn = document.getElementById('btnSkipSplash');
 
-  const messages = [
-    'Menyiapkan pengalaman...',
-    'Menata rempah nusantara...',
-    'Hampir siap...'
-  ];
-
-  let start = null;
-  let rafId = null;
   let finished = false;
+  let timeoutId = null;
 
   function goToLogin() {
     if (finished) return;
     finished = true;
-    cancelAnimationFrame(rafId);
+    clearTimeout(timeoutId);
     switchScreen('login-screen');
   }
 
-  function tick(ts) {
-    if (!start) start = ts;
-    const elapsed = ts - start;
-    const progress = Math.min(elapsed / DURATION_MS, 1);
-
-    fill.style.width = (progress * 100).toFixed(1) + '%';
-
-    const msgIndex = Math.min(
-      messages.length - 1,
-      Math.floor(progress * messages.length)
-    );
-    label.textContent = messages[msgIndex];
-
-    if (progress < 1) {
-      rafId = requestAnimationFrame(tick);
-    } else {
-      setTimeout(goToLogin, 250);
-    }
-  }
-
-  rafId = requestAnimationFrame(tick);
+  timeoutId = setTimeout(goToLogin, DURATION_MS);
   skipBtn.addEventListener('click', goToLogin);
 })();
 
@@ -85,18 +182,40 @@ function switchLoginTab(which) {
   }
 }
 
+/* ---------------- Isi dropdown Asal Daerah dari FOOD_DATA ---------------- */
+(function populateDaerahDropdown() {
+  const select = document.getElementById('userDaerah');
+  if (!select || typeof FOOD_DATA === 'undefined') return;
+
+  FOOD_DATA.forEach(island => {
+    island.provinces.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.provinsi;
+      opt.textContent = item.provinsi;
+      select.appendChild(opt);
+    });
+  });
+})();
+
 /* ---------------- LOGIN USER ---------------- */
 document.getElementById('formUser').addEventListener('submit', function (e) {
   e.preventDefault();
 
   const nama = document.getElementById('userNama').value.trim();
-  const prodi = document.getElementById('userProdi').value.trim();
-  const instansi = document.getElementById('userInstansi').value.trim();
+  const gender = document.getElementById('userGender').value;
+  const usia = document.getElementById('userUsia').value;
+  const daerah = document.getElementById('userDaerah').value;
+  const kabupaten = document.getElementById('userKabupaten').value.trim();
 
-  if (!nama || !prodi || !instansi) return;
+  if (!nama || !gender || !usia || !daerah || !kabupaten) return;
 
-  APP_STATE.userData = { nama, prodi, instansi };
+  APP_STATE.userData = { nama, gender, usia, daerah, kabupaten };
   APP_STATE.isAdmin = false;
+
+  const submissionId = generateSubmissionId();
+  sessionStorage.setItem('gastro_submission_id', submissionId);
+  sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
+  sessionStorage.setItem('gastro_is_admin', '0');
 
   goToMainMenu();
 });
@@ -110,31 +229,37 @@ document.getElementById('formAdmin').addEventListener('submit', function (e) {
 
   if (!username || !password) return;
 
-  // TODO: ganti dengan validasi kredensial admin sesungguhnya
-  APP_STATE.isAdmin = true;
-  APP_STATE.userData = { nama: username, prodi: '', instansi: '' };
+  if (password !== 'BRIGHT') {
+    const passInput = document.getElementById('adminPassword');
+    passInput.style.boxShadow = '0 0 0 3px rgba(193,68,14,0.5)';
+    setTimeout(() => { passInput.style.boxShadow = ''; }, 900);
+    return;
+  }
 
-  goToMainMenu();
+  APP_STATE.isAdmin = true;
+  APP_STATE.userData = { nama: username };
+
+  const submissionId = generateSubmissionId();
+  sessionStorage.setItem('gastro_submission_id', submissionId);
+  sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
+  sessionStorage.setItem('gastro_is_admin', '1');
+
+  window.location.href = 'admin/admin.html';
 });
 
 /* ---------------- MENU UTAMA ---------------- */
 function goToMainMenu() {
-  const avatarEl = document.getElementById('menuAvatar');
-  const greetingEl = document.getElementById('menuGreeting');
-
-  const nama = (APP_STATE.userData && APP_STATE.userData.nama) || 'Tamu';
-  avatarEl.textContent = nama.trim().charAt(0).toUpperCase() || 'G';
-
-  greetingEl.textContent = APP_STATE.isAdmin
-    ? `Halo, Admin ${nama}!`
-    : `Halo, ${nama}!`;
-
+  restoreUserUI();
   switchScreen('main-menu-screen');
 }
 
 function logoutUser() {
   APP_STATE.userData = null;
   APP_STATE.isAdmin = false;
+  sessionStorage.removeItem('gastro_user_data');
+  sessionStorage.removeItem('gastro_submission_id');
+  sessionStorage.removeItem('gastro_is_admin');
+  sessionStorage.removeItem('gastro_nav_state');
   document.getElementById('formUser').reset();
   document.getElementById('formAdmin').reset();
   switchLoginTab('user');
@@ -202,23 +327,38 @@ function openProvinsiList(islandId) {
   });
 
   switchScreen('materi-provinsi-screen');
+  saveNavState({ screen: 'materi-provinsi-screen', islandId: islandId });
 }
 
 function openFoodDetail(islandId, provIndex) {
   const item = getFoodByRef(islandId, provIndex);
   if (!item) return;
 
+  const override = MATERI_OVERRIDES[foodKeyOf(islandId, provIndex)];
+  const deskripsi = (override && override.deskripsi) ? override.deskripsi : item.deskripsi;
+  const gambarUrl = override && override.gambarUrl ? toDirectImageUrl(override.gambarUrl) : '';
+  const posisiGambar = (override && override.posisiGambar) || 'atas';
+
   document.getElementById('detailProvinsi').textContent = item.provinsi;
   document.getElementById('detailMakanan').textContent = item.makanan;
 
-  const bodyEl = document.getElementById('detailBody');
-  bodyEl.innerHTML = item.deskripsi
+  const paragraphsHtml = deskripsi
     .split('\n\n')
     .map(paragraf => `<p>${paragraf.trim()}</p>`)
     .join('');
+
+  const imageHtml = gambarUrl
+    ? `<img src="${gambarUrl}" alt="${item.makanan}" class="detail-image" onerror="this.style.display='none'">`
+    : '';
+
+  const bodyEl = document.getElementById('detailBody');
+  bodyEl.innerHTML = posisiGambar === 'bawah'
+    ? paragraphsHtml + imageHtml
+    : imageHtml + paragraphsHtml;
 
   const backBtn = document.getElementById('detailBackBtn');
   backBtn.onclick = () => openProvinsiList(islandId);
 
   switchScreen('materi-detail-screen');
+  saveNavState({ screen: 'materi-detail-screen', islandId: islandId, provIndex: provIndex });
 }
