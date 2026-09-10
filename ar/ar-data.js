@@ -63,3 +63,31 @@ function getArDataByIndex(targetIndex) {
   const food = getFoodByRef(ref.islandId, ref.provIndex);
   return { ...ref, provinsi: food ? food.provinsi : '', makanan: food ? food.makanan : '', deskripsi: food ? food.deskripsi : '' };
 }
+
+/* =========================================================
+   AR_ADJUST — Koreksi per-model (karena tiap file .glb bisa
+   punya orientasi sumbu berbeda tergantung software asalnya)
+
+   Isi berdasarkan NOMOR MAKANAN (bukan targetIndex), supaya
+   mudah dicocokkan dengan nama file.
+
+   - rotX/rotY/rotZ : rotasi koreksi dalam DERAJAT (bukan radian)
+   - scaleMultiplier : kalikan ukuran default (1 = normal,
+     1.3 = 30% lebih besar dari default, dst)
+
+   Default kalau nomor TIDAK ada di sini: rotX 90, rotY 0, rotZ 0, scaleMultiplier 1
+   Silakan tambah/ubah baris untuk makanan yang modelnya masih
+   terbalik/miring/kekecilan setelah dicoba di HP.
+   ========================================================= */
+const AR_ADJUST = {
+  // Contoh cara pakai (hapus tanda // dan sesuaikan angkanya):
+  // 10: { rotX: -90, rotY: 0, rotZ: 0, scaleMultiplier: 1.2 },  // Lempah Kuning
+  // 3:  { rotX: 90, rotY: 180, rotZ: 0, scaleMultiplier: 1 },   // Rendang
+};
+
+function getAdjustFor(foodNumber) {
+  return Object.assign(
+    { rotX: 90, rotY: 0, rotZ: 0, scaleMultiplier: 1 },
+    AR_ADJUST[foodNumber] || {}
+  );
+}
