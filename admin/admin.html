@@ -9,7 +9,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css">
 <style>
-  body { background: linear-gradient(165deg, #FFF8F0 0%, #FCEFE0 60%, #F5E2C8 100%); min-height: 100vh; }
+  body {
+    background:
+      linear-gradient(165deg, rgba(255,248,240,0.93) 0%, rgba(252,239,224,0.93) 60%, rgba(245,226,200,0.93) 100%),
+      url('../assets/background.jpg') center/cover no-repeat fixed;
+    min-height: 100vh;
+  }
 
   .admin-shell { max-width: 980px; margin: 0 auto; padding: 22px 18px 60px; }
 
@@ -17,7 +22,8 @@
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 20px;
   }
-  .admin-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; color: var(--brown-900); }
+  .admin-title { display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; color: var(--brown-900); }
+  .admin-title img { width: 32px; height: 32px; object-fit: contain; }
   .admin-logout-btn {
     border: none; cursor: pointer;
     background: var(--cream-soft);
@@ -148,7 +154,7 @@
 
   <div class="admin-shell">
     <div class="admin-topbar">
-      <span class="admin-title">🔐 Panel Admin GASTRO</span>
+      <span class="admin-title"><img src="../assets/logo.png" alt="GASTRO"> Panel Admin GASTRO</span>
       <button type="button" class="admin-logout-btn" onclick="adminLogout()">Keluar</button>
     </div>
 
