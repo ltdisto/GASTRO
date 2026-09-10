@@ -192,6 +192,19 @@
   .ar-submit-btn.submitted {
     background: linear-gradient(120deg, #3E6B4F, #4E7C59);
   }
+
+  .ar-rotate-hint {
+    position: fixed; bottom: 100px; left: 50%; z-index: 22;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    color: #fff; font-size: 12px; font-weight: 600;
+    padding: 8px 16px; border-radius: 999px;
+    display: flex; align-items: center; gap: 6px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+    white-space: nowrap;
+  }
+  .ar-rotate-hint.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -211,6 +224,8 @@
     <div class="ar-hint-frame"></div>
     <p class="ar-hint-text">Arahkan kamera ke marker makanan untuk melihat model 3D</p>
   </div>
+
+  <div class="ar-rotate-hint" id="arRotateHint">👆 Geser jari kiri-kanan untuk memutar model</div>
 
   <div class="ar-model-spinner" id="arModelSpinner">
     <div class="ar-spinner-ring"></div>

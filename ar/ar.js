@@ -52,7 +52,7 @@ function markDiscovered(targetIndex) {
 }
 
 /* ---------------- Submit ke Google Sheet ---------------- */
-const GOOGLE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec"; // lihat panduan setup Apps Script
+const GOOGLE_SHEET_WEBAPP_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA"; // lihat panduan setup Apps Script
 const submittedKey = submissionId ? `gastro_submitted_${submissionId}` : 'gastro_submitted_guest';
 
 function updateSubmitButton() {
@@ -90,8 +90,10 @@ async function submitProgress() {
   const payload = {
     submissionId: submissionId || '-',
     nama: userData.nama || '-',
-    prodi: userData.prodi || '-',
-    instansi: userData.instansi || '-',
+    gender: userData.gender || '-',
+    usia: userData.usia || '-',
+    daerah: userData.daerah || '-',
+    kabupaten: userData.kabupaten || '-',
     waktu: new Date().toISOString(),
     jumlahTerscan: discoveredTargets.size,
   };
@@ -207,6 +209,7 @@ function loadModelForTarget(targetIndex, onReady) {
   const ref = AR_DATA[targetIndex];
   if (!ref) return;
 
+  const adjust = getAdjustFor(ref.no);
   showModelSpinner(true);
 
   gltfLoader.load(
@@ -218,13 +221,19 @@ function loadModelForTarget(targetIndex, onReady) {
       const size = new THREE.Vector3();
       box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      const scale = 0.55 / maxDim;
+
+      const BASE_TARGET_SIZE = 1.6; // ukuran dasar (relatif terhadap lebar marker)
+      const scale = (BASE_TARGET_SIZE * adjust.scaleMultiplier) / maxDim;
       model.scale.setScalar(scale);
 
       const center = new THREE.Vector3();
       box.getCenter(center);
       model.position.sub(center.multiplyScalar(scale));
-      model.rotation.x = Math.PI / 2.4;
+
+      // Koreksi orientasi per-model (lihat AR_ADJUST di ar-data.js kalau masih terbalik/miring)
+      model.rotation.x = THREE.MathUtils.degToRad(adjust.rotX);
+      model.rotation.y = THREE.MathUtils.degToRad(adjust.rotY);
+      model.rotation.z = THREE.MathUtils.degToRad(adjust.rotZ);
 
       modelCache[targetIndex] = model;
       showModelSpinner(false);
@@ -252,6 +261,9 @@ async function startAR() {
     const { renderer, scene, camera } = mindarThree;
     initLoaders(renderer);
 
+    let activeGroup = null;
+    let userSpinY = 0;
+
     AR_DATA.forEach((ref, index) => {
       const anchor = mindarThree.addAnchor(index);
       const group = new THREE.Group();
@@ -263,6 +275,14 @@ async function startAR() {
         const data = getArDataByIndex(index);
         showInfoCard(data);
         markDiscovered(index);
+
+        userSpinY = 0;
+        group.rotation.y = 0;
+        activeGroup = group;
+
+        const rotateHint = document.getElementById('arRotateHint');
+        rotateHint.classList.add('show');
+        setTimeout(() => rotateHint.classList.remove('show'), 2800);
 
         loadModelForTarget(index, (modelInstance) => {
           group.clear();
@@ -276,8 +296,29 @@ async function startAR() {
         hideInfoCard();
         stopAudio();
         showHint(true);
+        if (activeGroup === group) activeGroup = null;
       };
     });
+
+    /* ---- Putar model dengan geser jari (kiri-kanan, sumbu Y saja) ---- */
+    let isDragging = false;
+    let lastPointerX = 0;
+    const canvasEl = renderer.domElement;
+
+    canvasEl.addEventListener('pointerdown', (e) => {
+      if (!activeGroup) return;
+      isDragging = true;
+      lastPointerX = e.clientX;
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging || !activeGroup) return;
+      const deltaX = e.clientX - lastPointerX;
+      lastPointerX = e.clientX;
+      userSpinY += deltaX * 0.012;
+      activeGroup.rotation.y = userSpinY;
+    });
+    window.addEventListener('pointerup', () => { isDragging = false; });
+    window.addEventListener('pointercancel', () => { isDragging = false; });
 
     const hemiLight = new THREE.HemisphereLight(0xfff4e0, 0x3a2415, 1.1);
     scene.add(hemiLight);
