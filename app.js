@@ -14,7 +14,7 @@ function generateSubmissionId() {
 
 /* ---------------- Konten Editor Admin (Google Sheets sebagai CMS) ---------------- */
 // PENTING: isi dengan URL Web App Apps Script yang sama seperti di ar.js
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec";
+const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
 
 let MATERI_OVERRIDES = {}; // { "islandId_provIndex": { deskripsi, gambarUrl, posisiGambar } }
 
@@ -51,7 +51,9 @@ function toDirectImageUrl(url) {
   const trimmed = url.trim();
   const driveMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveMatch && trimmed.includes('drive.google.com')) {
-    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+    // Format "uc?export=view" sering diblokir Google untuk hotlink <img>.
+    // Format thumbnail jauh lebih stabil untuk ditampilkan langsung di website.
+    return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
   }
   return trimmed; // asumsikan sudah berupa link gambar langsung (jpg/png/webp, dsb)
 }
