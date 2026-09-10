@@ -134,7 +134,7 @@ button, input {
   animation: spinSlow 14s linear infinite;
 }
 @keyframes spinSlow { to { transform: rotate(360deg); } }
-.splash-emblem-icon { font-size: 46px; filter: drop-shadow(0 2px 3px rgba(139,94,60,0.25)); }
+.splash-emblem-icon { width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(139,94,60,0.25)); }
 
 .splash-eyebrow {
   font-size: 12.5px;
@@ -239,7 +239,9 @@ button, input {
    LOGIN
    ========================================================= */
 #login-screen {
-  background: linear-gradient(165deg, #FFF8F0 0%, #FCEFE0 60%, #F5E2C8 100%);
+  background:
+    linear-gradient(165deg, rgba(255,248,240,0.93) 0%, rgba(252,239,224,0.93) 60%, rgba(245,226,200,0.93) 100%),
+    url('assets/background.jpg') center/cover no-repeat;
   padding: 40px 20px 32px;
 }
 
@@ -271,9 +273,12 @@ button, input {
   animation: splashRise 0.7s cubic-bezier(0.19,1,0.22,1) both;
 }
 .login-brand-icon {
-  font-size: 34px;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
   display: inline-block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 3px 6px rgba(139,94,60,0.3));
 }
 .login-brand-title {
   font-family: var(--font-display);
@@ -521,7 +526,9 @@ button, input {
    MENU UTAMA
    ========================================================= */
 #main-menu-screen {
-  background: linear-gradient(165deg, #FFF8F0 0%, #FCEFE0 60%, #F5E2C8 100%);
+  background:
+    linear-gradient(165deg, rgba(255,248,240,0.93) 0%, rgba(252,239,224,0.93) 60%, rgba(245,226,200,0.93) 100%),
+    url('assets/background.jpg') center/cover no-repeat;
   padding: 36px 20px 40px;
   align-items: stretch;
 }
