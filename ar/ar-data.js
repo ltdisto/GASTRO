@@ -81,6 +81,7 @@ function getArDataByIndex(targetIndex) {
    ========================================================= */
 const AR_ADJUST = {
    10: { rotX: -90, rotY: 0, rotZ: 0, scaleMultiplier: 1 }
+   12: { rotX: -90, rotY: 0, rotZ: 0, scaleMultiplier: 1 }
   // Contoh cara pakai (hapus tanda // dan sesuaikan angkanya):
   // 10: { rotX: -90, rotY: 0, rotZ: 0, scaleMultiplier: 1.2 },  // Lempah Kuning
   // 3:  { rotX: 90, rotY: 180, rotZ: 0, scaleMultiplier: 1 },   // Rendang
