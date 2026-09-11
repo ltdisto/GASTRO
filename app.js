@@ -8,13 +8,29 @@ const APP_STATE = {
   isAdmin: false,
 };
 
-function generateSubmissionId() {
-  return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+/* Submission ID DETERMINISTIK: dibuat dari kombinasi data diri, bukan acak.
+   Jadi kalau user login lagi dengan data PERSIS SAMA (nama, gender, usia,
+   daerah, kabupaten), ID yang dihasilkan juga sama persis -> otomatis
+   "melanjutkan" progress & baris Spreadsheet yang sama seperti sebelumnya. */
+function normalizeForId(value) {
+  return (value || '').toString().trim().toLowerCase().replace(/\s+/g, '-');
+}
+function generateSubmissionId(userData) {
+  return [
+    normalizeForId(userData.nama),
+    normalizeForId(userData.gender),
+    normalizeForId(userData.usia),
+    normalizeForId(userData.daerah),
+    normalizeForId(userData.kabupaten),
+  ].join('_');
+}
+function generateAdminSubmissionId(username) {
+  return `admin_${normalizeForId(username)}`;
 }
 
 /* ---------------- Konten Editor Admin (Google Sheets sebagai CMS) ---------------- */
 // PENTING: isi dengan URL Web App Apps Script yang sama seperti di ar.js
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec";
+const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
 
 let MATERI_OVERRIDES = {}; // { "islandId_provIndex": { deskripsi, gambarUrl, posisiGambar } }
 
@@ -221,7 +237,7 @@ document.getElementById('formUser').addEventListener('submit', function (e) {
   APP_STATE.userData = { nama, gender, usia, daerah, kabupaten };
   APP_STATE.isAdmin = false;
 
-  const submissionId = generateSubmissionId();
+  const submissionId = generateSubmissionId(APP_STATE.userData);
   localStorage.setItem('gastro_submission_id', submissionId);
   localStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
   localStorage.setItem('gastro_is_admin', '0');
@@ -248,7 +264,7 @@ document.getElementById('formAdmin').addEventListener('submit', function (e) {
   APP_STATE.isAdmin = true;
   APP_STATE.userData = { nama: username };
 
-  const submissionId = generateSubmissionId();
+  const submissionId = generateAdminSubmissionId(username);
   localStorage.setItem('gastro_submission_id', submissionId);
   localStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
   localStorage.setItem('gastro_is_admin', '1');
