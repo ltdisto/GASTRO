@@ -14,7 +14,7 @@ function generateSubmissionId() {
 
 /* ---------------- Konten Editor Admin (Google Sheets sebagai CMS) ---------------- */
 // PENTING: isi dengan URL Web App Apps Script yang sama seperti di ar.js
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec";
+const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
 
 let MATERI_OVERRIDES = {}; // { "islandId_provIndex": { deskripsi, gambarUrl, posisiGambar } }
 
@@ -45,26 +45,33 @@ async function loadMateriOverrides() {
 }
 loadMateriOverrides();
 
-/* Konversi berbagai format link Google Drive jadi link gambar langsung yang bisa ditampilkan */
+/* Konversi berbagai format link (Google Drive, Pexels) jadi link gambar langsung */
 function toDirectImageUrl(url) {
   if (!url) return '';
   const trimmed = url.trim();
+
+  // Google Drive: /file/d/FILE_ID/view atau ?id=FILE_ID
   const driveMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveMatch && trimmed.includes('drive.google.com')) {
-    // Format "uc?export=view" sering diblokir Google untuk hotlink <img>.
-    // Format thumbnail jauh lebih stabil untuk ditampilkan langsung di website.
     return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
   }
+
+  // Pexels: halaman .../foto/nama-file-1234567/ -> CDN gambar langsung
+  const pexelsMatch = trimmed.match(/pexels\.com\/.*-(\d+)\/?/);
+  if (pexelsMatch) {
+    return `https://images.pexels.com/photos/${pexelsMatch[1]}/pexels-photo-${pexelsMatch[1]}.jpeg`;
+  }
+
   return trimmed; // asumsikan sudah berupa link gambar langsung (jpg/png/webp, dsb)
 }
 
 /* ---------------- Persistensi sesi (agar refresh tidak logout) ---------------- */
 function saveNavState(state) {
-  sessionStorage.setItem('gastro_nav_state', JSON.stringify(state));
+  localStorage.setItem('gastro_nav_state', JSON.stringify(state));
 }
 function getNavState() {
   try {
-    return JSON.parse(sessionStorage.getItem('gastro_nav_state') || 'null');
+    return JSON.parse(localStorage.getItem('gastro_nav_state') || 'null');
   } catch (e) {
     return null;
   }
@@ -91,7 +98,7 @@ function restoreUserUI() {
 }
 
 function restoreSession() {
-  const rawUser = sessionStorage.getItem('gastro_user_data');
+  const rawUser = localStorage.getItem('gastro_user_data');
   if (!rawUser) return false;
 
   try {
@@ -99,7 +106,7 @@ function restoreSession() {
   } catch (e) {
     return false;
   }
-  APP_STATE.isAdmin = sessionStorage.getItem('gastro_is_admin') === '1';
+  APP_STATE.isAdmin = localStorage.getItem('gastro_is_admin') === '1';
 
   // Jika sesi admin aktif dan kembali membuka index.html, langsung arahkan ke panel Admin
   if (APP_STATE.isAdmin) {
@@ -215,9 +222,9 @@ document.getElementById('formUser').addEventListener('submit', function (e) {
   APP_STATE.isAdmin = false;
 
   const submissionId = generateSubmissionId();
-  sessionStorage.setItem('gastro_submission_id', submissionId);
-  sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
-  sessionStorage.setItem('gastro_is_admin', '0');
+  localStorage.setItem('gastro_submission_id', submissionId);
+  localStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
+  localStorage.setItem('gastro_is_admin', '0');
 
   goToMainMenu();
 });
@@ -242,9 +249,9 @@ document.getElementById('formAdmin').addEventListener('submit', function (e) {
   APP_STATE.userData = { nama: username };
 
   const submissionId = generateSubmissionId();
-  sessionStorage.setItem('gastro_submission_id', submissionId);
-  sessionStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
-  sessionStorage.setItem('gastro_is_admin', '1');
+  localStorage.setItem('gastro_submission_id', submissionId);
+  localStorage.setItem('gastro_user_data', JSON.stringify(APP_STATE.userData));
+  localStorage.setItem('gastro_is_admin', '1');
 
   window.location.href = 'admin/admin.html';
 });
@@ -258,10 +265,10 @@ function goToMainMenu() {
 function logoutUser() {
   APP_STATE.userData = null;
   APP_STATE.isAdmin = false;
-  sessionStorage.removeItem('gastro_user_data');
-  sessionStorage.removeItem('gastro_submission_id');
-  sessionStorage.removeItem('gastro_is_admin');
-  sessionStorage.removeItem('gastro_nav_state');
+  localStorage.removeItem('gastro_user_data');
+  localStorage.removeItem('gastro_submission_id');
+  localStorage.removeItem('gastro_is_admin');
+  localStorage.removeItem('gastro_nav_state');
   document.getElementById('formUser').reset();
   document.getElementById('formAdmin').reset();
   switchLoginTab('user');
