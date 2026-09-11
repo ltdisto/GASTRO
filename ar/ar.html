@@ -45,6 +45,25 @@
     white-space: nowrap;
   }
 
+  .ar-checkpoint-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex-shrink: 0;
+    border: none; cursor: pointer; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  }
+  .ar-checkpoint-btn:active { transform: scale(0.92); }
+  .ar-checkpoint-btn.saved {
+    background: #4E7C59;
+    color: #fff;
+  }
+  .ar-checkpoint-btn.syncing {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
   /* ---- Scan hint ---- */
   .ar-hint {
     position: fixed; top: 50%; left: 50%; z-index: 20;
@@ -216,7 +235,13 @@
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       Keluar
     </button>
-    <span class="ar-title">GASTRO — AR Kuliner</span>
+    <button type="button" class="ar-checkpoint-btn" id="arCheckpointBtn" title="Simpan checkpoint progress">
+      <svg id="arCheckpointIcon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+    </button>
     <span class="ar-progress-badge" id="arProgressBadge">0 / 38</span>
   </div>
 

@@ -22,26 +22,27 @@ let currentAudioIndex = null;
 let isAudioPlaying = false;
 let gltfLoader = null;
 
-/* ---------------- Progress tracking (persist saat refresh via sessionStorage) ---------------- */
-const submissionId = sessionStorage.getItem('gastro_submission_id') || null;
+/* ---------------- Progress tracking (persist saat refresh via localStorage) ---------------- */
+const submissionId = localStorage.getItem('gastro_submission_id') || null;
 const progressKey = submissionId ? `gastro_ar_progress_${submissionId}` : 'gastro_ar_progress_guest';
 
 function loadProgress() {
   try {
-    const raw = sessionStorage.getItem(progressKey);
+    const raw = localStorage.getItem(progressKey);
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch (e) {
     return new Set();
   }
 }
 function saveProgress(set) {
-  sessionStorage.setItem(progressKey, JSON.stringify([...set]));
+  localStorage.setItem(progressKey, JSON.stringify([...set]));
 }
 const discoveredTargets = loadProgress();
 
 function updateProgressBadge() {
   document.getElementById('arProgressBadge').textContent = `${discoveredTargets.size} / ${TOTAL_TARGETS}`;
   updateSubmitButton();
+  markCheckpointUnsaved(); // ada progress baru = checkpoint sebelumnya jadi "usang"
 }
 function markDiscovered(targetIndex) {
   if (!discoveredTargets.has(targetIndex)) {
@@ -51,14 +52,80 @@ function markDiscovered(targetIndex) {
   }
 }
 
-/* ---------------- Submit ke Google Sheet ---------------- */
-const GOOGLE_SHEET_WEBAPP_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA"; // lihat panduan setup Apps Script
+/* ---------------- Sync ke Google Sheet (dipakai bareng: ikon checkpoint & tombol Simpan Progress) ---------------- */
+const GOOGLE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec"; // lihat panduan setup Apps Script
 const submittedKey = submissionId ? `gastro_submitted_${submissionId}` : 'gastro_submitted_guest';
 
+function getUserDataSnapshot() {
+  try {
+    return JSON.parse(localStorage.getItem('gastro_user_data') || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function buildProgressPayload() {
+  const userData = getUserDataSnapshot();
+  const isComplete = discoveredTargets.size >= TOTAL_TARGETS;
+  return {
+    submissionId: submissionId || '-',
+    nama: userData.nama || '-',
+    gender: userData.gender || '-',
+    usia: userData.usia || '-',
+    daerah: userData.daerah || '-',
+    kabupaten: userData.kabupaten || '-',
+    waktu: new Date().toISOString(),
+    jumlahTerscan: discoveredTargets.size,
+    status: isComplete ? 'Selesai' : 'Sedang Berjalan',
+  };
+}
+
+/* syncProgress: mengirim (upsert) baris progress ke Google Sheet.
+   Dipakai baik oleh ikon checkpoint (kapan saja) maupun tombol
+   Simpan Progress besar (hanya aktif di 38/38). */
+async function syncProgress() {
+  const res = await fetch(GOOGLE_SHEET_WEBAPP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // hindari CORS preflight, tetap bisa baca respons
+    body: JSON.stringify(buildProgressPayload()),
+  });
+  const json = await res.json();
+  if (json.status !== 'success') throw new Error('Response tidak sukses');
+}
+
+/* ---------------- Ikon Checkpoint (topbar, bisa kapan saja) ---------------- */
+let hasUnsavedProgress = true;
+
+function markCheckpointUnsaved() {
+  hasUnsavedProgress = true;
+  const btn = document.getElementById('arCheckpointBtn');
+  btn.classList.remove('saved');
+}
+
+document.getElementById('arCheckpointBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('arCheckpointBtn');
+  if (btn.classList.contains('syncing')) return;
+
+  btn.classList.add('syncing');
+  try {
+    await syncProgress();
+    hasUnsavedProgress = false;
+    btn.classList.remove('syncing');
+    btn.classList.add('saved');
+  } catch (err) {
+    console.error('Gagal checkpoint progress:', err);
+    btn.classList.remove('syncing');
+    // beri tanda gagal singkat (tetap merah sebentar lalu normal) tanpa mengganggu UX
+    btn.style.background = 'rgba(193,68,14,0.85)';
+    setTimeout(() => { btn.style.background = ''; }, 1200);
+  }
+});
+
+/* ---------------- Tombol Simpan Progress (bawah, hanya aktif di 38/38) ---------------- */
 function updateSubmitButton() {
   const btn = document.getElementById('arSubmitBtn');
   const btnText = document.getElementById('arSubmitBtnText');
-  const alreadySubmitted = sessionStorage.getItem(submittedKey) === '1';
+  const alreadySubmitted = localStorage.getItem(submittedKey) === '1';
 
   if (alreadySubmitted) {
     btn.disabled = true;
@@ -79,36 +146,19 @@ async function submitProgress() {
   const btnText = document.getElementById('arSubmitBtnText');
   if (btn.disabled) return;
 
-  let userData = {};
-  try {
-    userData = JSON.parse(sessionStorage.getItem('gastro_user_data') || '{}');
-  } catch (e) {}
-
   btn.disabled = true;
   btnText.textContent = 'Mengirim...';
 
-  const payload = {
-    submissionId: submissionId || '-',
-    nama: userData.nama || '-',
-    gender: userData.gender || '-',
-    usia: userData.usia || '-',
-    daerah: userData.daerah || '-',
-    kabupaten: userData.kabupaten || '-',
-    waktu: new Date().toISOString(),
-    jumlahTerscan: discoveredTargets.size,
-  };
-
   try {
-    await fetch(GOOGLE_SHEET_WEBAPP_URL, {
-      method: 'POST',
-      mode: 'no-cors', // Apps Script Web App tidak mendukung CORS response, kirim saja tanpa baca balasan
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload),
-    });
+    await syncProgress();
 
-    sessionStorage.setItem(submittedKey, '1');
+    localStorage.setItem(submittedKey, '1');
     btn.classList.add('submitted');
     btnText.textContent = 'Progress Tersimpan ✓';
+
+    // tombol final berhasil = checkpoint ikon juga otomatis ikut jadi "tersimpan"
+    hasUnsavedProgress = false;
+    document.getElementById('arCheckpointBtn').classList.add('saved');
   } catch (err) {
     console.error('Gagal mengirim progress:', err);
     btn.disabled = false;
@@ -349,6 +399,11 @@ async function startAR() {
 
 /* ---------------- Init ---------------- */
 updateProgressBadge();
+// Kalau sebelumnya sudah pernah submit final, ikon checkpoint langsung tampil "tersimpan"
+if (localStorage.getItem(submittedKey) === '1') {
+  hasUnsavedProgress = false;
+  document.getElementById('arCheckpointBtn').classList.add('saved');
+}
 setLoadingProgress(15, 'Memuat pustaka Three.js & MindAR...');
 window.addEventListener('load', () => {
   setLoadingProgress(35, 'Menyiapkan mesin AR & decoder model 3D...');
