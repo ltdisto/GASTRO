@@ -30,7 +30,8 @@ function generateAdminSubmissionId(username) {
 
 /* ---------------- Konten Editor Admin (Google Sheets sebagai CMS) ---------------- */
 // PENTING: isi dengan URL Web App Apps Script yang sama seperti di ar.js
-const APPS_SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9Gw89cWOq7ZDy0Lf4i8ZhLFP0Q8QRCLsiluLndgG4X7oqMjrQ-rADCIm2-r9qiTr8pA/exec
+";
 
 let MATERI_OVERRIDES = {}; // { "islandId_provIndex": { deskripsi, gambarUrl, posisiGambar } }
 
