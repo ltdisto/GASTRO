@@ -129,6 +129,12 @@
   }
   table.lb-table td { padding: 11px 14px; border-bottom: 1px solid rgba(139,94,60,0.1); color: var(--brown-700); }
   table.lb-table tr:last-child td { border-bottom: none; }
+  .lb-status-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 800; white-space: nowrap;
+  }
+  .lb-status-selesai { background: rgba(78,124,89,0.15); color: #3E6B4F; }
+  .lb-status-berjalan { background: rgba(212,175,55,0.2); color: #8B6F1F; }
   .lb-rank { font-weight: 800; color: var(--brown-900); }
   .lb-empty { padding: 30px; text-align: center; color: var(--brown-500); font-size: 13px; }
 
@@ -209,7 +215,7 @@
         <table class="lb-table">
           <thead>
             <tr>
-              <th>#</th><th>Nama</th><th>Gender</th><th>Usia</th><th>Daerah</th><th>Kabupaten</th><th>Terscan</th><th>Waktu</th>
+              <th>#</th><th>Nama</th><th>Gender</th><th>Usia</th><th>Daerah</th><th>Kabupaten</th><th>Terscan</th><th>Status</th><th>Waktu</th>
             </tr>
           </thead>
           <tbody id="lbTableBody"></tbody>

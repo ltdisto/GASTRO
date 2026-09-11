@@ -9,17 +9,17 @@ const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1mgUvpFZpsIwP6vH
 
 /* ---------------- Auth guard ---------------- */
 (function checkAdminAuth() {
-  const isAdmin = sessionStorage.getItem('gastro_is_admin') === '1';
+  const isAdmin = localStorage.getItem('gastro_is_admin') === '1';
   if (!isAdmin) {
     window.location.href = '../index.html';
   }
 })();
 
 function adminLogout() {
-  sessionStorage.removeItem('gastro_user_data');
-  sessionStorage.removeItem('gastro_submission_id');
-  sessionStorage.removeItem('gastro_is_admin');
-  sessionStorage.removeItem('gastro_nav_state');
+  localStorage.removeItem('gastro_user_data');
+  localStorage.removeItem('gastro_submission_id');
+  localStorage.removeItem('gastro_is_admin');
+  localStorage.removeItem('gastro_nav_state');
   window.location.href = '../index.html';
 }
 
@@ -240,6 +240,8 @@ function renderLeaderboard() {
   filtered.forEach((row, i) => {
     const tr = document.createElement('tr');
     const waktuFmt = row.waktu ? new Date(row.waktu).toLocaleString('id-ID') : '-';
+    const isSelesai = row.status === 'Selesai';
+    const statusBadge = `<span class="lb-status-badge ${isSelesai ? 'lb-status-selesai' : 'lb-status-berjalan'}">${row.status || '-'}</span>`;
     tr.innerHTML = `
       <td class="lb-rank">${i + 1}</td>
       <td>${row.nama || '-'}</td>
@@ -248,6 +250,7 @@ function renderLeaderboard() {
       <td>${row.daerah || '-'}</td>
       <td>${row.kabupaten || '-'}</td>
       <td>${row.jumlahTerscan || 0}/38</td>
+      <td>${statusBadge}</td>
       <td>${waktuFmt}</td>
     `;
     tbody.appendChild(tr);
